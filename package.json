@@ -1,0 +1,14 @@
+{
+  "name": "pr-auto-reviewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub Action: assign PR reviewers in round-robin order, never the PR author",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/",
+    "assign": "node scripts/auto-assign-reviewer.mjs"
+  }
+}

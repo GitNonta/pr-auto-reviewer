@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { loadConfig } from '../scripts/lib/config.mjs';
+import { ConfigError } from '../scripts/lib/round-robin.mjs';
+
+async function writeConfig(contents) {
+  const dir = await mkdtemp(path.join(tmpdir(), 'auto-reviewer-config-'));
+  const file = path.join(dir, 'config.json');
+  await writeFile(file, typeof contents === 'string' ? contents : JSON.stringify(contents), 'utf8');
+  return file;
+}
+
+test('applies defaults for count, state path and tag fallback', async () => {
+  const file = await writeConfig({ reviewers: ['octocat', 'hubot'] });
+  assert.deepEqual(await loadConfig(file), {
+    reviewers: ['octocat', 'hubot'],
+    count: 1,
+    statePath: '.github/reviewers-state.json',
+    tagFallback: true,
+  });
+});
+
+test('reads number_of_reviewers, state_path and tag_fallback', async () => {
+  const file = await writeConfig({
+    reviewers: ['octocat', 'hubot'],
+    number_of_reviewers: 2,
+    state_path: 'state/queue.json',
+    tag_fallback: false,
+  });
+  assert.deepEqual(await loadConfig(file), {
+    reviewers: ['octocat', 'hubot'],
+    count: 2,
+    statePath: 'state/queue.json',
+    tagFallback: false,
+  });
+});
+
+test('rejects a reviewer count larger than the queue', async () => {
+  const file = await writeConfig({ reviewers: ['octocat'], number_of_reviewers: 2 });
+  await assert.rejects(() => loadConfig(file), ConfigError);
+});
+
+test('rejects malformed JSON and missing config files', async () => {
+  const broken = await writeConfig('{ nope');
+  await assert.rejects(() => loadConfig(broken), ConfigError);
+
+  const dir = await mkdtemp(path.join(tmpdir(), 'auto-reviewer-missing-'));
+  await mkdir(dir, { recursive: true });
+  await assert.rejects(() => loadConfig(path.join(dir, 'absent.json')), ConfigError);
+});
