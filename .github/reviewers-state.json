@@ -1,4 +1,14 @@
 {
   "cursor": 0,
-  "assignments": []
+  "assignments": [
+    {
+      "pull_request": 15,
+      "author": "GitNonta",
+      "reviewers": [
+        "Nontawatpkru17"
+      ],
+      "mode": "requested",
+      "at": "2026-11-09T07:24:13.044Z"
+    }
+  ]
 }
