@@ -63,6 +63,15 @@
       ],
       "mode": "requested",
       "at": "2026-11-09T08:04:44.334Z"
+    },
+    {
+      "pull_request": 22,
+      "author": "GitNonta",
+      "reviewers": [
+        "Nontawatpkru17"
+      ],
+      "mode": "requested",
+      "at": "2026-11-09T08:07:11.682Z"
     }
   ]
 }
