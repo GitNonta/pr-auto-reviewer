@@ -1,5 +1,5 @@
 {
-  "cursor": 2,
+  "cursor": 1,
   "assignments": [
     {
       "pull_request": 15,
@@ -108,6 +108,15 @@
       ],
       "mode": "requested",
       "at": "2026-11-09T08:19:22.142Z"
+    },
+    {
+      "pull_request": 27,
+      "author": "Themynon2",
+      "reviewers": [
+        "GitNonta"
+      ],
+      "mode": "requested",
+      "at": "2026-11-09T08:22:42.207Z"
     }
   ]
 }
