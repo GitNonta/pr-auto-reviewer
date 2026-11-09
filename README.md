@@ -11,12 +11,11 @@ GitHub Action ที่ **assign Reviewer อัตโนมัติเมื�
 ## วิธีทำงาน
 
 ```
-config.reviewers = [octocat, hubot, GitNonta]   ← คิวตามลำดับ
+config.reviewers = [octocat, hubot, Nontawatpkru17]   ← คิวตามลำดับ
 state.cursor     = 0
 
-PR #1 (author = GitNonta) → octocat   cursor 1
-PR #2 (author = GitNonta) → hubot     cursor 2
-PR #3 (author = GitNonta) → GitNonta ถูกข้าม → octocat   cursor 1
+PR #9  (author = GitNonta) → hubot            cursor 2 (tag fallback)
+PR #10 (author = GitNonta) → Nontawatpkru17   cursor 0 (requested reviewer)
 ```
 
 - เริ่มสแกนจาก `cursor` ไล่ไปตามคิวและวนกลับต้นคิว
@@ -42,7 +41,7 @@ PR #3 (author = GitNonta) → GitNonta ถูกข้าม → octocat   curso
 
 ```json
 {
-  "reviewers": ["octocat", "hubot", "GitNonta"],
+  "reviewers": ["octocat", "hubot", "Nontawatpkru17"],
   "number_of_reviewers": 1,
   "state_path": ".github/reviewers-state.json",
   "tag_fallback": true
