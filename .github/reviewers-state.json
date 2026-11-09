@@ -1,5 +1,5 @@
 {
-  "cursor": 1,
+  "cursor": 2,
   "assignments": [
     {
       "pull_request": 1,
@@ -63,6 +63,15 @@
       ],
       "mode": "tagged",
       "at": "2026-11-09T05:00:08.131Z"
+    },
+    {
+      "pull_request": 9,
+      "author": "GitNonta",
+      "reviewers": [
+        "hubot"
+      ],
+      "mode": "tagged",
+      "at": "2026-11-09T05:18:53.620Z"
     }
   ]
 }
