@@ -1,4 +1,14 @@
 {
-  "cursor": 0,
-  "assignments": []
+  "cursor": 1,
+  "assignments": [
+    {
+      "pull_request": 1,
+      "author": "GitNonta",
+      "reviewers": [
+        "octocat"
+      ],
+      "mode": "tagged",
+      "at": "2026-11-09T04:26:26.735Z"
+    }
+  ]
 }
