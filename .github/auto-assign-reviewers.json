@@ -2,7 +2,8 @@
 {
   "reviewers": [
     "GitNonta",
-    "Nontawatpkru17"
+    "Nontawatpkru17",
+    "Themynon2"
   ],
   "number_of_reviewers": 1,
   "state_path": ".github/reviewers-state.json",
