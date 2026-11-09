@@ -1,0 +1,10 @@
+{
+  "reviewers": [
+    "octocat",
+    "hubot",
+    "GitNonta"
+  ],
+  "number_of_reviewers": 1,
+  "state_path": ".github/reviewers-state.json",
+  "tag_fallback": true
+}
