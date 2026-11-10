@@ -20,7 +20,9 @@ test('applies defaults for count, state path and tag fallback', async () => {
     reviewers: ['octocat', 'hubot'],
     count: 1,
     statePath: '.github/reviewers-state.json',
+    codeownersPath: null,
     tagFallback: true,
+    profiles: {},
   });
 });
 
@@ -35,8 +37,45 @@ test('reads number_of_reviewers, state_path and tag_fallback', async () => {
     reviewers: ['octocat', 'hubot'],
     count: 2,
     statePath: 'state/queue.json',
+    codeownersPath: null,
     tagFallback: false,
+    profiles: {},
   });
+});
+
+test('reads codeowners_path when provided', async () => {
+  const file = await writeConfig({
+    reviewers: ['octocat'],
+    codeowners_path: 'docs/CODEOWNERS',
+  });
+
+  assert.equal((await loadConfig(file)).codeownersPath, 'docs/CODEOWNERS');
+});
+
+test('reads reviewer_profiles and ignores logins outside the queue', async () => {
+  const file = await writeConfig({
+    reviewers: ['octocat', 'hubot'],
+    reviewer_profiles: {
+      Octocat: { paths: ['frontend/**'], labels: ['frontend'], owns: ['frontend/src/**'] },
+      ghost: { paths: ['anything/**'] },
+    },
+  });
+
+  const config = await loadConfig(file);
+  assert.deepEqual(config.profiles, {
+    octocat: { paths: ['frontend/**'], labels: ['frontend'], owns: ['frontend/src/**'] },
+  });
+});
+
+test('rejects malformed reviewer_profiles', async () => {
+  const invalidType = await writeConfig({ reviewers: ['octocat'], reviewer_profiles: ['nope'] });
+  await assert.rejects(() => loadConfig(invalidType), ConfigError);
+
+  const invalidPaths = await writeConfig({
+    reviewers: ['octocat'],
+    reviewer_profiles: { octocat: { paths: 'frontend/**' } },
+  });
+  await assert.rejects(() => loadConfig(invalidPaths), ConfigError);
 });
 
 test('rejects a reviewer count larger than the queue', async () => {

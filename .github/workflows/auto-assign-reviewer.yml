@@ -1,41 +1,55 @@
+# ชื่อ workflow ที่แสดงในแท็บ Actions
 name: Auto-assign reviewer
 
+# ทำงานเมื่อมี PR ถูกเปิดใหม่ หรือถูกเปลี่ยนจาก draft เป็นพร้อมรีวิว
 on:
   pull_request:
     types: [opened, ready_for_review]
 
+# สิทธิ์ของ GITHUB_TOKEN ที่ workflow นี้ต้องใช้
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: write # เขียนไฟล์ state (cursor ของคิว) กลับไปยัง default branch
+  pull-requests: write # request reviewer ใน PR
+  issues: write # คอมเมนต์ใน PR (GitHub มอง PR เป็น issue)
 
-# Serialize runs so two PRs opened at the same time cannot pick the same queue slot.
+# บังคับให้รันทีละรอบ เพื่อไม่ให้ PR สองใบที่เปิดพร้อมกันแย่งคิวตำแหน่งเดียวกัน
 concurrency:
   group: auto-assign-reviewer
   cancel-in-progress: false
 
 jobs:
   assign:
-    name: Assign reviewer (round-robin)
+    name: Assign reviewer (hybrid score + round-robin)
+    # ข้าม PR ที่ยังเป็น draft (ยังไม่พร้อมรีวิว)
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout default branch (source of round-robin state)
+      # checkout default branch เพราะ state ของคิว (cursor) เก็บอยู่บนนั้น
+      # ไม่ checkout branch ของ PR เพื่อให้อ่าน/เขียน state ได้เสมอ
+      - name: Checkout default branch (source of reviewer state)
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.repository.default_branch }}
 
+      # เตรียม Node.js เวอร์ชันเดียวกับที่ package.json กำหนด (>=20)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      # รัน unit test ก่อน ถ้า logic พังให้ job แดงแทนที่จะ assign ผิดคน
       - name: Run unit tests
         run: node --test test/
 
+      # เลือก reviewer ด้วย hybrid score 100 คะแนน:
+      # skill 40 + ownership 30 (จาก CODEOWNERS, fallback owns ใน config)
+      # + workload (งานค้างน้อย) 20 + ยังไม่รีวิว PR ล่าสุด 10
+      # ถ้าคะแนนเสมอกันจึงใช้คิว round-robin ตัดสิน และข้ามผู้เปิด PR เสมอ
       - name: Assign reviewer
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # optional: PAT ที่อ่านสมาชิกทีมได้ ใช้ขยาย @org/team ใน CODEOWNERS
+          TEAMS_TOKEN: ${{ secrets.TEAMS_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_API_BASE_URL: ${{ github.api_url }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
