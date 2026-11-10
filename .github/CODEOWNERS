@@ -1,0 +1,16 @@
+# CODEOWNERS ของ pr-auto-reviewer (รูปแบบเดียวกับที่ GitHub ใช้)
+# กำหนดจากโครงสร้างไฟล์จริงบน main: scripts/, test/, .github/, README.md
+# rule สุดท้ายที่ match ไฟล์ชนะ — แก้ path/เจ้าของได้ตามหน้าที่จริงของทีม
+
+# ค่าเริ่มต้น: ไฟล์ที่ไม่มี rule เจาะจงเป็นของผู้ดูแล repo
+*                   @GitNonta
+
+# engine + workflow (ผู้เขียน/ดูแลไฟล์ทั้งหมดใน scripts/ และ workflow)
+/scripts/           @GitNonta
+/.github/workflows/ @GitNonta
+
+# ชุดทดสอบ
+/test/              @Nontawatpkru17
+
+# เอกสาร
+/README.md          @Themynon2
