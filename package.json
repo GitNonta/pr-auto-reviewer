@@ -2,7 +2,7 @@
   "name": "pr-auto-reviewer",
   "version": "1.0.0",
   "private": true,
-  "description": "GitHub Action: assign PR reviewers in round-robin order, never the PR author",
+  "description": "GitHub Action: assign PR reviewers by skill/ownership/workload/recency score with round-robin tie-break, never the PR author",
   "type": "module",
   "engines": {
     "node": ">=20"
