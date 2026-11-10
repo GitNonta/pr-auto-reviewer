@@ -273,6 +273,15 @@ test('picks the reviewer whose skills match the changed files and logs the reaso
 
     assert.deepEqual(result.selected, ['hubot']);
     assert.ok(logs.some((line) => line.includes('skill 40') && line.includes('ownership 30')));
+
+    // ยืนยันว่า client ถูกใช้จริง: ดึงไฟล์ที่เปลี่ยน + PR ที่เปิดอยู่ ก่อนเลือก reviewer
+    const getUrls = mock.calls.filter((call) => call.method === 'GET').map((call) => call.url);
+    assert.ok(getUrls.some((url) => url.includes('/files?per_page=100')), 'ต้องดึงไฟล์ที่เปลี่ยน');
+    assert.ok(getUrls.some((url) => url.includes('state=open')), 'ต้องดึงรายการ PR ที่เปิดอยู่');
+    assert.ok(
+      logs.some((line) => line.includes('context:') && line.includes('2 changed files')),
+      'ต้อง log ข้อมูลประกอบที่ดึงมา',
+    );
     assert.ok(logs.some((line) => line.includes('why hubot:') && line.includes('ตรงกับงาน')));
   } finally {
     await mock.close();
