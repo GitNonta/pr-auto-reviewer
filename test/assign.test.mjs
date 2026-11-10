@@ -417,3 +417,78 @@ test('CODEOWNERS ที่มีแต่ทีม -> ownership fallback ไป 
     await mock.close();
   }
 });
+
+test('integration: ข้อมูลจริงจาก GitHub API ให้ Bob 100 คะแนนเต็ม', async () => {
+  const mock = await startMock({ files: ['backend/api/users.js'] });
+  try {
+    const dir = await workspace({
+      reviewers: ['Nontawatpkru17', 'Bob'],
+      profiles: { Bob: { paths: ['backend/**'], owns: ['backend/**'] } },
+      codeownersText: 'backend/ @Bob',
+      // PR ล่าสุดถูกรีวิวโดย Nontawatpkru17 -> Bob ยังไม่ได้รีวิว PR ล่าสุด
+      state: {
+        cursor: 0,
+        assignments: [
+          { pull_request: 31, author: 'GitNonta', reviewers: ['Nontawatpkru17'], mode: 'requested' },
+        ],
+      },
+    });
+    const logs = [];
+
+    const result = await run({
+      env: envFor(mock, 16, 'GitNonta'),
+      cwd: dir,
+      log: (line) => logs.push(line),
+      warn: () => {},
+    });
+
+    assert.deepEqual(result.selected, ['Bob']);
+    assert.ok(logs.some((line) => line.includes('score 100/100')), 'log ต้องแสดง 100/100');
+    assert.ok(logs.some((line) => line.includes('context: 1 changed files')));
+    assert.deepEqual(mock.posts().at(-1).body, { reviewers: ['Bob'] });
+  } finally {
+    await mock.close();
+  }
+});
+
+test('integration: ผู้เปิด PR ได้คะแนนสูงสุดก็ยังถูกกันออก', async () => {
+  const mock = await startMock({ files: ['backend/api/users.js'] });
+  try {
+    const dir = await workspace({
+      reviewers: ['GitNonta', 'Bob'],
+      profiles: {
+        GitNonta: { paths: ['backend/**'], owns: ['backend/**'] },
+        Bob: { paths: ['backend/**'] },
+      },
+      codeownersText: 'backend/ @GitNonta',
+    });
+    const logs = [];
+
+    const result = await run({
+      env: envFor(mock, 17, 'GitNonta'),
+      cwd: dir,
+      log: (line) => logs.push(line),
+      warn: () => {},
+    });
+
+    assert.deepEqual(result.selected, ['Bob']);
+    assert.deepEqual(mock.posts().at(-1).body, { reviewers: ['Bob'] });
+    assert.ok(!logs.some((line) => line.includes('why GitNonta')));
+  } finally {
+    await mock.close();
+  }
+});
+
+test('integration: คะแนนเท่ากันและไม่มีข้อมูลความถนัด -> คิว round-robin ตัดสิน', async () => {
+  const mock = await startMock({ files: ['src/app.ts'] });
+  try {
+    const dir = await workspace({ reviewers: ['alice', 'bob'], state: { cursor: 1, assignments: [] } });
+
+    const result = await run({ env: envFor(mock, 18, 'carol'), cwd: dir, ...quiet });
+
+    assert.deepEqual(result.selected, ['bob']);
+    assert.equal((await readState(dir)).cursor, 0);
+  } finally {
+    await mock.close();
+  }
+});
