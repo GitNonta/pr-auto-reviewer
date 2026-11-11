@@ -4,10 +4,12 @@
  *
  * ลำดับการทำงาน:
  * 1) อ่าน config + state
- * 2) เก็บข้อมูลประกอบจาก GitHub: ไฟล์ที่เปลี่ยน, label ของ PR, งานรีวิวที่ค้างอยู่
+ * 2) เก็บข้อมูลประกอบจาก GitHub: ไฟล์ที่เปลี่ยน (getPullFiles), label ของ PR
+ *    (getPull) และงานรีวิวที่ค้างอยู่ (listOpenPulls) — ส่งเข้า scorer เป็น
+ *    `changes.files`, `changes.labels` และ `pending`
  *    (ถ้าดึงไม่ได้จะเตือนแล้วเดินต่อด้วยข้อมูลเท่าที่มี = fallback)
- * 3) ให้คะแนนผู้มีสิทธิ์แบบ hybrid (fit/fairness/load) แล้วให้ round-robin
- *    ตัดสินเมื่อเสมอ โดยตัดผู้เปิด PR ออกเสมอ
+ * 3) ให้คะแนน skill 40 + ownership 30 + workload 20 + recency 10 แล้วให้
+ *    round-robin ตัดสินเมื่อเสมอ โดยตัดผู้เปิด PR ออกเสมอ
  * 4) request review (หรือคอมเมนต์แท็กเป็นวิธีสำรอง) -> บันทึก cursor กลับเข้า git
  */
 import { fileURLToPath } from 'node:url';
@@ -69,9 +71,9 @@ async function resolveTeamMembers({ client, codeowners, warn }) {
 
 /**
  * ดึงข้อมูลประกอบของ PR แบบ "ไม่ทำให้ job ล้ม":
- * - ไฟล์ที่เปลี่ยน (ใช้คิด fit)
- * - label ของ PR (ใช้คิด fit)
- * - จำนวนงานรีวิวที่ค้างอยู่ต่อคน (ใช้คิด load)
+ * - ไฟล์ที่เปลี่ยน (ใช้คิด skill และ ownership)
+ * - label ของ PR (ใช้คิด skill)
+ * - จำนวนงานรีวิวที่ค้างอยู่ต่อคน (ใช้คิด workload)
  * ถ้าส่วนใดล้มเหลวจะเตือนและคืนค่าว่างของส่วนนั้น (fallback)
  */
 async function collectPullContext({ client, repository, pullNumber, warn }) {
@@ -83,7 +85,7 @@ async function collectPullContext({ client, repository, pullNumber, warn }) {
       context.files = files.map((file) => file && file.filename).filter((name) => typeof name === 'string');
     }
   } catch (err) {
-    warn(`[auto-reviewer] could not load changed files (${err.message}); fit score will be skipped.`);
+    warn(`[auto-reviewer] could not load changed files (${err.message}); skill/ownership fall back to config.`);
   }
 
   try {
@@ -92,7 +94,7 @@ async function collectPullContext({ client, repository, pullNumber, warn }) {
       context.labels = pull.labels.map((label) => label && label.name).filter((name) => typeof name === 'string');
     }
   } catch (err) {
-    warn(`[auto-reviewer] could not load PR labels (${err.message}); fit score will be skipped.`);
+    warn(`[auto-reviewer] could not load PR labels (${err.message}); skill falls back to paths only.`);
   }
 
   try {
@@ -111,7 +113,7 @@ async function collectPullContext({ client, repository, pullNumber, warn }) {
       }
     }
   } catch (err) {
-    warn(`[auto-reviewer] could not load pending review requests (${err.message}); load uses history only.`);
+    warn(`[auto-reviewer] could not load pending review requests (${err.message}); workload counts 0 pending.`);
   }
 
   return context;
@@ -198,8 +200,14 @@ export async function run({ env = process.env, cwd = process.cwd(), api = null, 
   // ขยายเจ้าของที่เป็นทีมก่อนคิดคะแนน ownership (ล้มเหลวได้ ไม่ทำให้ job ล้ม)
   const teamMembers = codeowners ? await resolveTeamMembers({ client, codeowners, warn }) : {};
 
-  // ข้อมูลประกอบสำหรับคะแนน fit/load (ล้มเหลวบางส่วนได้ ไม่ทำให้ job ล้ม)
+  // ข้อมูลประกอบสำหรับคะแนน skill/ownership/workload (ล้มเหลวบางส่วนได้ ไม่ทำให้ job ล้ม)
   const context = await collectPullContext({ client, repository, pullNumber, warn });
+
+  // log ให้เห็นว่าไฟล์/label/งานค้างถูกดึงมาและถูกใช้คิดคะแนนจริง
+  log(
+    `[auto-reviewer] context: ${context.files.length} changed files, ${context.labels.length} labels, ` +
+      `${Object.keys(context.pending).length} reviewer(s) with pending reviews`,
+  );
 
   // เลือก reviewer: fit จากไฟล์/label + fairness/load จากประวัติ/งานค้าง
   // ตัดผู้เปิด PR ออกเสมอ และใช้คิว round-robin ตัดสินเมื่อคะแนนเสมอกัน
